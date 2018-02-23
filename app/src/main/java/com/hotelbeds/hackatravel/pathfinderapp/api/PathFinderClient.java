@@ -13,6 +13,7 @@ import cz.msebera.android.httpclient.entity.ContentType;
 
 public class PathFinderClient {
     private static final String BASE_URL = "http://dirtydevelopers.org/";
+//    private static final String BASE_URL = "http://10.175.48.192:8080/";
 
     private static AsyncHttpClient client = new AsyncHttpClient();
 
