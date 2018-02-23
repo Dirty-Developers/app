@@ -1,6 +1,8 @@
 package com.hotelbeds.hackatravel.pathfinderapp;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -13,6 +15,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.BitmapDescriptor;
@@ -37,7 +40,7 @@ import cz.msebera.android.httpclient.entity.StringEntity;
 public class DetailActivity extends AppCompatActivity {
 
     private AsyncHttpClient client = new AsyncHttpClient();
-
+    private JSONObject detailData;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +52,7 @@ public class DetailActivity extends AppCompatActivity {
 
         try {
             Bundle b = getIntent().getExtras();
-            JSONObject detailData = new JSONObject(b.getString("detailData"));
+            detailData = new JSONObject(b.getString("detailData"));
             client.get(detailData.getString("photo"), new AsyncHttpResponseHandler() {
 
                 final ImageView detailImg = (ImageView) findViewById(R.id.imgDetail);
@@ -76,36 +79,106 @@ public class DetailActivity extends AppCompatActivity {
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(final View view) {
                 try {
-                    JSONObject rq = new JSONObject();
-                    JSONObject coordenadasOri = new JSONObject();
-                    coordenadasOri.put("lon", "1321321");
-                    coordenadasOri.put("lat", "36843218");
 
-                    rq.put("origin", coordenadasOri);
+////                                {
+////                                    id: [optional]
+////                                    name: [optional]
+////                                    event: [
+////                                    {
+////                                        id, checkin, checkout, name,  lon, lat, type
+////                                    }
+////                                    ],...
+////                                }
 
-                    JSONObject coordenadasDes = new JSONObject();
-                    coordenadasDes.put("lon", "1321321");
-                    coordenadasDes.put("lat", "36843218");
-                    JSONObject destiantion = new JSONObject();
-                    rq.put("destination", coordenadasDes);
-                    rq.put("checkin", "");
-                    rq.put("checkout", "");
-
-                    StringEntity entity = new StringEntity(rq.toString());
+                    JSONObject agenda = new JSONObject();
+                    agenda.put("title", detailData.getString("agendaName"));
+                    agenda.put("user_id", 1);
+                    JSONArray events = new JSONArray();
+                    JSONObject event = new JSONObject();
+                    event.put("title", detailData.getString("name"));
+                    event.put("checkin", ((JSONObject) ((JSONArray) detailData.get("avail")).get(0)).get("date"));
+                    event.put("checkout", ((JSONObject) ((JSONArray) detailData.get("avail")).get(0)).get("date"));
+                    event.put("id", detailData.get("id"));
+                    event.put("type", detailData.get("type"));
+                    event.put("longitude", detailData.get("lon"));
+                    event.put("latitude", detailData.get("lat"));
+                    events.put(event);
+                    agenda.put("events", events);
+                    StringEntity entity = new StringEntity(agenda.toString());
                     PathFinderClient.post("agenda", entity, new JsonHttpResponseHandler() {
                         @Override
                         public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
-
+                            try {
+                                SharedPreferences sharedPref = DetailActivity.this.getPreferences(Context.MODE_PRIVATE);
+                                SharedPreferences.Editor editor = sharedPref.edit();
+                                editor.putInt("agendaId", Integer.parseInt(response.getString("id"))).apply();
+                                Toast.makeText(DetailActivity.this, "The agenda was added succesfully!!!", Toast.LENGTH_LONG).show();
+                                DetailActivity.this.finish();
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
                         }
 
                         @Override
                         public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-
+                            try {
+                                Snackbar.make(view, errorResponse.getString("error"), Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
                         }
                     });
-                    Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG).setAction("Action", null).show();
+
+//                    JSONObject rq = new JSONObject();
+//                    rq.put("lon", Double.parseDouble(detailData.getString("lon")));
+//                    rq.put("lat", Double.parseDouble(detailData.getString("lat")));
+//                    rq.put("checkin", "15-05-2018");
+//                    rq.put("checkout", "20-05-2018");
+//
+//                    StringEntity entity = new StringEntity(rq.toString());
+//                    PathFinderClient.post("ancillaries", entity, new JsonHttpResponseHandler() {
+//                        @Override
+//                        public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+//                            try {
+//
+//                                JSONArray hotels = ((JSONArray) response.get("hotels"));
+//                                for (int i = 0; i < hotels.length(); i++) {
+//                                    JSONObject hotel = (JSONObject) hotels.get(i);
+//                                    BitmapDescriptor iconHotel = BitmapDescriptorFactory.fromResource(R.drawable.hotel);
+//                                    LatLng marker = new LatLng(Double.parseDouble(hotel.getString("lat")), Double.parseDouble(hotel.getString("lon")));
+//                                    hotel.put("type", "HOTEL");
+//                                }
+//
+//                                JSONArray restaurants = ((JSONArray) response.get("restaurants"));
+//                                for (int i = 0; i < restaurants.length(); i++) {
+//                                    JSONObject restaurant = (JSONObject) restaurants.get(i);
+//                                    BitmapDescriptor iconRestaurants = BitmapDescriptorFactory.fromResource(R.drawable.restaurant);
+//                                    LatLng marker = new LatLng(Double.parseDouble(restaurant.getString("lat")), Double.parseDouble(restaurant.getString("lon")));
+//                                    restaurant.put("type", "RESTAURANT");
+//                                }
+//
+//                            } catch (JSONException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+//                            try {
+//                                Snackbar.make(view, errorResponse.getString("error"), Snackbar.LENGTH_LONG).setAction("Action", null).show();
+//                            } catch (JSONException e) {
+//                                e.printStackTrace();
+//                            }
+//                        }
+//                    });
+//
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                } catch (UnsupportedEncodingException e) {
+//                    e.printStackTrace();
+//                }
                 } catch (JSONException e) {
                     e.printStackTrace();
                 } catch (UnsupportedEncodingException e) {

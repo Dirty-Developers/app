@@ -1,7 +1,9 @@
 package com.hotelbeds.hackatravel.pathfinderapp;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -59,6 +61,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.MissingFormatArgumentException;
+import java.util.Random;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.entity.StringEntity;
@@ -76,6 +79,7 @@ public class MainActivity extends AppCompatActivity
     private TextView txtLongitud;
     private TextView txtLatitudDes;
     private TextView txtLongitudDes;
+    private JSONObject detail;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +96,9 @@ public class MainActivity extends AppCompatActivity
                 dialog.setContentView(R.layout.modal_data);
                 dialog.setTitle("Select Origin and Destination:");
                 Button dialogButton = (Button) dialog.findViewById(R.id.btnGo);
+                final EditText agendaName = dialog.findViewById(R.id.etAgendaName);
+                Random ran = new Random();
+                agendaName.setText("Agenda_" + ran.nextInt(1000));
 
                 LinearLayout lyCoordenades = dialog.findViewById(R.id.lyCoordenades);
                 LinearLayout lyDestination = dialog.findViewById(R.id.lyDestination);
@@ -117,6 +124,9 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onClick(View v) {
                         try {
+                            final Dialog dialog = new Dialog(MainActivity.this);
+                            dialog.setContentView(R.layout.modal_loading);
+                            dialog.show();
                             JSONObject rq = new JSONObject();
 
                             JSONObject coordenadasOri = new JSONObject();
@@ -130,8 +140,8 @@ public class MainActivity extends AppCompatActivity
                             coordenadasDes.put("lat", Double.parseDouble(txtLatitudDes.getText().toString()));
                             JSONObject destiantion = new JSONObject();
                             rq.put("destination", coordenadasDes);
-                            rq.put("checkin", "");
-                            rq.put("checkout", "");
+                            rq.put("checkin", "15-05-2018");
+                            rq.put("checkout", "20-05-2018");
 
                             StringEntity entity = new StringEntity(rq.toString());
                             PathFinderClient.post("activities", entity, new JsonHttpResponseHandler() {
@@ -143,14 +153,62 @@ public class MainActivity extends AppCompatActivity
                                             JSONObject activity = (JSONObject) activities.get(i);
                                             BitmapDescriptor iconActivity = BitmapDescriptorFactory.fromResource(R.drawable.compass);
                                             LatLng latLng = new LatLng(Double.parseDouble(activity.getString("lat")), Double.parseDouble(activity.getString("lon")));
-                                            activity.put("type", "ACTIVYTY");
+                                            activity.put("type", "ACTIVITY");
+                                            activity.put("agendaName", agendaName.getText());
                                             mMap.addMarker(new MarkerOptions().position(latLng).title(activity.toString()).icon(iconActivity));
                                             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+
+//                                            JSONObject rqAncillaries = new JSONObject();
+//                                            rqAncillaries.put("lon", latLng.longitude);
+//                                            rqAncillaries.put("lat", latLng.latitude);
+//                                            rqAncillaries.put("checkin", "15-05-2018");
+//                                            rqAncillaries.put("checkout", "20-05-2018");
+//                                            StringEntity entity = new StringEntity(rqAncillaries.toString());
+//                                            PathFinderClient.post("ancillaries", entity, new JsonHttpResponseHandler() {
+//                                                @Override
+//                                                public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
+//                                                    try {
+//                                                        hotels = ((JSONArray) response.get("hotels"));
+//                                                        for (int i = 0; i < hotels.length(); i++) {
+//                                                            JSONObject hotel = (JSONObject) hotels.get(i);
+//                                                            BitmapDescriptor iconHotel = BitmapDescriptorFactory.fromResource(R.drawable.hotel);
+//                                                            LatLng marker = new LatLng(Double.parseDouble(hotel.getString("lat")), Double.parseDouble(hotel.getString("lon")));
+//                                                            hotel.put("type", "HOTEL");
+//                                                            mMap.addMarker(new MarkerOptions().position(marker).title(hotel.toString()).icon(iconHotel));
+//                                                            mMap.moveCamera(CameraUpdateFactory.newLatLng(marker));
+//                                                        }
+//
+//                                                        restaurants = ((JSONArray) response.get("restaurants"));
+//                                                        for (int i = 0; i < restaurants.length(); i++) {
+//                                                            JSONObject restaurant = (JSONObject) restaurants.get(i);
+//                                                            BitmapDescriptor iconRestaurants = BitmapDescriptorFactory.fromResource(R.drawable.restaurant);
+//                                                            LatLng marker = new LatLng(Double.parseDouble(restaurant.getString("lat")), Double.parseDouble(restaurant.getString("lon")));
+//                                                            restaurant.put("type", "RESTAURANT");
+//                                                            mMap.addMarker(new MarkerOptions().position(marker).title(restaurant.toString()).icon(iconRestaurants));
+//                                                            mMap.moveCamera(CameraUpdateFactory.newLatLng(marker));
+//                                                        }
+//                                                        mMap.animateCamera(CameraUpdateFactory.zoomTo(10.0f));
+//
+//                                                    } catch (JSONException e) {
+//                                                        e.printStackTrace();
+//                                                    }
+//                                                }
+//
+//                                                @Override
+//                                                public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+//                                                    String s = "";
+//                                                }
+//                                            });
+
                                         }
                                         mMap.animateCamera(CameraUpdateFactory.zoomTo(10.0f));
+                                        dialog.dismiss();
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
+//                                    catch (UnsupportedEncodingException e) {
+//                                        e.printStackTrace();
+//                                    }
                                 }
 
                                 @Override
@@ -159,6 +217,38 @@ public class MainActivity extends AppCompatActivity
                                 }
                             });
 
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        dialog.dismiss();
+                    }
+                });
+                dialog.show();
+            }
+        });
+
+        FloatingActionButton fabRefresh = (FloatingActionButton) findViewById(R.id.fabRefresh);
+        fabRefresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+                AsyncHttpClient client = new AsyncHttpClient();
+                SharedPreferences sharedPref = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
+                String url = "http://dirtydevelopers.org/agenda/" + sharedPref.getInt("agendaId", 1);
+                client.get(url, new AsyncHttpResponseHandler() {
+                    @Override
+                    public void onSuccess(int statusCode, Header[] headers, byte[] response) {
+                        // called when response HTTP status is "200 OK"
+                        String jsonString = new String(response);
+                        try {
+                            JSONObject json = new JSONObject(jsonString);
+                            JSONObject rqAncillaries = new JSONObject();
+                            rqAncillaries.put("lon", ((JSONObject) json.getJSONArray("event").get(0)).getDouble("lon"));
+                            rqAncillaries.put("lat", ((JSONObject) json.getJSONArray("event").get(0)).getDouble("lat"));
+                            rqAncillaries.put("checkin", "15-05-2018");
+                            rqAncillaries.put("checkout", "20-05-2018");
+                            StringEntity entity = new StringEntity(rqAncillaries.toString());
                             PathFinderClient.post("ancillaries", entity, new JsonHttpResponseHandler() {
                                 @Override
                                 public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
@@ -183,6 +273,7 @@ public class MainActivity extends AppCompatActivity
                                             mMap.moveCamera(CameraUpdateFactory.newLatLng(marker));
                                         }
                                         mMap.animateCamera(CameraUpdateFactory.zoomTo(10.0f));
+
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
@@ -190,19 +281,23 @@ public class MainActivity extends AppCompatActivity
 
                                 @Override
                                 public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
-
+                                    Toast.makeText(MainActivity.this, "The agenda was added succesfully!!!", Toast.LENGTH_LONG).show();
                                 }
                             });
-
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
                         } catch (JSONException e) {
                             e.printStackTrace();
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
                         }
-                        dialog.dismiss();
+
+                    }
+
+                    @Override
+                    public void onFailure(int statusCode, Header[] headers, byte[] errorResponse, Throwable e) {
+                        // called when response HTTP status is "4XX" (eg. 401, 403, 404)
+                        String s = "";
                     }
                 });
-                dialog.show();
             }
         });
 
@@ -320,7 +415,7 @@ public class MainActivity extends AppCompatActivity
             public boolean onMarkerClick(Marker m) {
 //                Toast.makeText(MainActivity.this, "YOU CLICKED ON " + m.getTitle(), Toast.LENGTH_LONG).show();
                 try {
-                    final JSONObject detail = new JSONObject(m.getTitle());
+                    detail = new JSONObject(m.getTitle());
                     final Dialog dialog = new Dialog(MainActivity.this);
                     dialog.setContentView(R.layout.modal_detail);
                     dialog.setTitle(detail.getString("name"));
