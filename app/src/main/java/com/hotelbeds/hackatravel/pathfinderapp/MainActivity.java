@@ -120,14 +120,14 @@ public class MainActivity extends AppCompatActivity
                             JSONObject rq = new JSONObject();
 
                             JSONObject coordenadasOri = new JSONObject();
-                            coordenadasOri.put("lon", txtLongitud.getText());
-                            coordenadasOri.put("lat", txtLatitud.getText());
+                            coordenadasOri.put("lon", Double.parseDouble(txtLongitud.getText().toString()));
+                            coordenadasOri.put("lat", Double.parseDouble(txtLatitud.getText().toString()));
 
                             rq.put("origin", coordenadasOri);
 
                             JSONObject coordenadasDes = new JSONObject();
-                            coordenadasDes.put("lon", txtLongitudDes.getText());
-                            coordenadasDes.put("lat", txtLatitudDes.getText());
+                            coordenadasDes.put("lon", Double.parseDouble(txtLongitudDes.getText().toString()));
+                            coordenadasDes.put("lat", Double.parseDouble(txtLatitudDes.getText().toString()));
                             JSONObject destiantion = new JSONObject();
                             rq.put("destination", coordenadasDes);
                             rq.put("checkin", "");
