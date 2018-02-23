@@ -234,8 +234,14 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(final View v) {
                 AsyncHttpClient client = new AsyncHttpClient();
+
+                final Dialog dialog = new Dialog(MainActivity.this);
+                dialog.setContentView(R.layout.modal_loading);
+                dialog.show();
+
                 SharedPreferences sharedPref = MainActivity.this.getPreferences(Context.MODE_PRIVATE);
                 String url = "http://dirtydevelopers.org/agenda/" + sharedPref.getInt("agendaId", 1);
+                client.addHeader("Content-Type", "application/json");
                 client.get(url, new AsyncHttpResponseHandler() {
                     @Override
                     public void onSuccess(int statusCode, Header[] headers, byte[] response) {
@@ -244,8 +250,8 @@ public class MainActivity extends AppCompatActivity
                         try {
                             JSONObject json = new JSONObject(jsonString);
                             JSONObject rqAncillaries = new JSONObject();
-                            rqAncillaries.put("lon", ((JSONObject) json.getJSONArray("event").get(0)).getDouble("lon"));
-                            rqAncillaries.put("lat", ((JSONObject) json.getJSONArray("event").get(0)).getDouble("lat"));
+                            rqAncillaries.put("lon", ((JSONObject) json.getJSONArray("events").get(0)).getDouble("longitude"));
+                            rqAncillaries.put("lat", ((JSONObject) json.getJSONArray("events").get(0)).getDouble("latitude"));
                             rqAncillaries.put("checkin", "15-05-2018");
                             rqAncillaries.put("checkout", "20-05-2018");
                             StringEntity entity = new StringEntity(rqAncillaries.toString());
@@ -257,7 +263,7 @@ public class MainActivity extends AppCompatActivity
                                         for (int i = 0; i < hotels.length(); i++) {
                                             JSONObject hotel = (JSONObject) hotels.get(i);
                                             BitmapDescriptor iconHotel = BitmapDescriptorFactory.fromResource(R.drawable.hotel);
-                                            LatLng marker = new LatLng(Double.parseDouble(hotel.getString("lat")), Double.parseDouble(hotel.getString("lon")));
+                                            LatLng marker = new LatLng(Double.parseDouble(hotel.getString("latitude")), Double.parseDouble(hotel.getString("longitude")));
                                             hotel.put("type", "HOTEL");
                                             mMap.addMarker(new MarkerOptions().position(marker).title(hotel.toString()).icon(iconHotel));
                                             mMap.moveCamera(CameraUpdateFactory.newLatLng(marker));
@@ -267,13 +273,13 @@ public class MainActivity extends AppCompatActivity
                                         for (int i = 0; i < restaurants.length(); i++) {
                                             JSONObject restaurant = (JSONObject) restaurants.get(i);
                                             BitmapDescriptor iconRestaurants = BitmapDescriptorFactory.fromResource(R.drawable.restaurant);
-                                            LatLng marker = new LatLng(Double.parseDouble(restaurant.getString("lat")), Double.parseDouble(restaurant.getString("lon")));
+                                            LatLng marker = new LatLng(Double.parseDouble(restaurant.getString("latitude")), Double.parseDouble(restaurant.getString("longitude")));
                                             restaurant.put("type", "RESTAURANT");
                                             mMap.addMarker(new MarkerOptions().position(marker).title(restaurant.toString()).icon(iconRestaurants));
                                             mMap.moveCamera(CameraUpdateFactory.newLatLng(marker));
                                         }
                                         mMap.animateCamera(CameraUpdateFactory.zoomTo(10.0f));
-
+                                        dialog.dismiss();
                                     } catch (JSONException e) {
                                         e.printStackTrace();
                                     }
